@@ -118,13 +118,11 @@ bot.command("balance", async (ctx: Context) => {
         },
       }
     );
-    //console.log(idUser.data)
+
     users.data.forEach(async (element: any) => {
-      //console.log(element)
-      //console.log(walletName)
       if (element.name === walletName) {
         const userId = element.id;
-        //console.log(userId)
+
         const inkey = await axios.get(
           `${LNBITS_URL}/users/${userId}`,
           {
@@ -133,7 +131,6 @@ bot.command("balance", async (ctx: Context) => {
             },
           }
         );
-        //console.log(inkey.data.wallets[0].inkey)
         const inkeyCode = `${inkey.data.wallets[0].inkey}`
         const balance = await axios.get(
           `${LNBITS_URL_MAIN}/wallet`,
@@ -143,7 +140,6 @@ bot.command("balance", async (ctx: Context) => {
             },
           }
         );
-        console.log(balance)
         ctx.reply(`${user_name}, tu saldo es de: ${balance.data.balance} sats`);
       }
   });
