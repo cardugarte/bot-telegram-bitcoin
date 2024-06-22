@@ -1,6 +1,7 @@
 import { Telegraf, Context } from "telegraf";
 import axios from "axios";
 import dotenv from "dotenv";
+import { url } from "inspector";
 
 // Configuración del bot
 dotenv.config();
@@ -9,7 +10,8 @@ if (
   !process.env.TELEGRAM_BOT_TOKEN ||
   !process.env.LNBITS_API_KEY ||
   !process.env.LNBITS_URL ||
-  !process.env.ADMIN_ID
+  !process.env.ADMIN_ID ||
+  !process.env.LNBITS_URL_MAIN
 ) {
   throw new Error("const is not defined in the environment variables");
 }
@@ -17,6 +19,7 @@ if (
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const LNBITS_API_KEY = process.env.LNBITS_API_KEY;
 const LNBITS_URL = process.env.LNBITS_URL;
+const LNBITS_URL_MAIN = process.env.LNBITS_URL_MAIN;
 
 // Inicializar el bot
 const bot = new Telegraf(TELEGRAM_BOT_TOKEN);
@@ -52,6 +55,8 @@ bot.command("createwallet", async (ctx: Context) => {
     );
 
     const walletId = response.data.id;
+    //localStorage.setItem("walletId", walletId);
+    console.log(response)
     ctx.reply(
       `${user_name}, tu wallet se ha creado con éxito: id: ${walletId} - nombre: ${walletName}`
     );
@@ -102,17 +107,46 @@ bot.command("send", async (ctx: Context) => {
 bot.command("balance", async (ctx: Context) => {
   const user = ctx.from;
   const user_name = user?.first_name;
-  const walletName = `wallet_${user_name}`;
+  const walletName = `wallet_${user?.username || user_name}`;
 
   try {
-    const response = await axios.get(
-      `${LNBITS_URL}/wallet/${walletName}/balance`,
+    const users = await axios.get(
+      `${LNBITS_URL}/users`,
       {
         headers: {
           "X-Api-Key": LNBITS_API_KEY,
         },
       }
     );
+    //console.log(idUser.data)
+    users.data.forEach(async (element: any) => {
+      //console.log(element)
+      //console.log(walletName)
+      if (element.name === walletName) {
+        const userId = element.id;
+        //console.log(userId)
+        const inkey = await axios.get(
+          `${LNBITS_URL}/users/${userId}`,
+          {
+            headers: {
+              "X-Api-Key": LNBITS_API_KEY,
+            },
+          }
+        );
+        //console.log(inkey.data.wallets[0].inkey)
+        const inkeyCode = `${inkey.data.wallets[0].inkey}`
+        const balance = await axios.get(
+          `${LNBITS_URL_MAIN}/wallet`,
+          {
+            headers: {
+              "X-Api-Key": inkeyCode,
+            },
+          }
+        );
+        console.log(balance)
+        ctx.reply(`${user_name}, tu saldo es de: ${balance.data.balance} sats`);
+      }
+  });
   } catch (error) {
     ctx.reply("Error al obtener el balance");
     console.error("Error getting balance:", error);
